@@ -1,0 +1,16 @@
+namespace: todo
+
+backend:
+  image: karthick1729/todo-backend:latest
+  replicas: 2
+
+frontend:
+  image: karthick1729/todo-frontend:latest
+  replicas: 2
+
+postgres:
+  image: postgres:14
+  storage: 1Gi
+
+ingress:
+  host: todo.local
