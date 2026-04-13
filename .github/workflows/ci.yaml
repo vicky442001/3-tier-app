@@ -1,0 +1,110 @@
+name: DevSecOps CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-scan-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # -------------------------
+    # Checkout
+    # -------------------------
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # -------------------------
+    # Set Image Tag
+    # -------------------------
+    - name: Set Image Tag
+      id: vars
+      run: echo "TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
+    # -------------------------
+    # Build Backend Image
+    # -------------------------
+    - name: Build Backend
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/todo-backend:${{ env.TAG }} ./backend
+
+    # -------------------------
+    # Build Frontend Image
+    # -------------------------
+    - name: Build Frontend
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/todo-frontend:${{ env.TAG }} ./frontend
+
+    # -------------------------
+    # Trivy Image Scan
+    # -------------------------
+    - name: Scan Backend Image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ secrets.DOCKER_USERNAME }}/todo-backend:${{ env.TAG }}
+
+    - name: Scan Frontend Image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ secrets.DOCKER_USERNAME }}/todo-frontend:${{ env.TAG }}
+
+    # -------------------------
+    # Trivy Filesystem Scan
+    # -------------------------
+    - name: Trivy FS Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: fs
+        scan-ref: .
+
+    # -------------------------
+    # Dependency Scan
+    # -------------------------
+    - name: NPM Audit
+      run: |
+        cd backend
+        npm install
+        npm audit --audit-level=high
+
+    # -------------------------
+    # Secret Scan
+    # -------------------------
+    - name: Gitleaks Scan
+      uses: gitleaks/gitleaks-action@v2
+
+    # -------------------------
+    # Login to Docker Hub
+    # -------------------------
+    - name: Docker Login
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    # -------------------------
+    # Push Images
+    # -------------------------
+    - name: Push Images
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/todo-backend:${{ env.TAG }}
+        docker push ${{ secrets.DOCKER_USERNAME }}/todo-frontend:${{ env.TAG }}
+
+    # -------------------------
+    # Update Helm values.yaml
+    # -------------------------
+    - name: Update Helm Image Tags
+      run: |
+        sed -i "s|image: .*todo-backend.*|image: ${{ secrets.DOCKER_USERNAME }}/todo-backend:${{ env.TAG }}|" helm-chart/values.yaml
+        sed -i "s|image: .*todo-frontend.*|image: ${{ secrets.DOCKER_USERNAME }}/todo-frontend:${{ env.TAG }}|" helm-chart/values.yaml
+
+    # -------------------------
+    # Commit & Push
+    # -------------------------
+    - name: Commit Changes
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        git add helm-chart/values.yaml
+        git commit -m "Update image tag to ${{ env.TAG }}" || echo "No changes"
+        git push
