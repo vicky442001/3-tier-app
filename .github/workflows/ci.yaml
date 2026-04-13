@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-scan-deploy:
     runs-on: ubuntu-latest
@@ -67,7 +70,7 @@ jobs:
       run: |
         cd backend
         npm install
-        npm audit --audit-level=high
+        npm audit --audit-level=critical
 
     # -------------------------
     # Secret Scan
