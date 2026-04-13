@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ToDo App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      background: #667eea;
+      color: white;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #5a67d8;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      background: #f7f7f7;
+      padding: 10px 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    li span {
+      color: #333;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .delete-btn {
+      background: #e53e3e;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .delete-btn:hover {
+      background: #c53030;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <h1>📝 ToDo App</h1>
+
+    <div class="input-group">
+      <input id="task" placeholder="Enter a task..." />
+      <button onclick="addTodo()">Add</button>
+    </div>
+
+    <ul id="list"></ul>
+    <div id="empty" class="empty">No tasks yet 🎉</div>
+  </div>
+
+  <script>
+    const API = '/api';
+
+    async function fetchTodos() {
+      const res = await fetch(`${API}/todos`);
+      const todos = await res.json();
+      const list = document.getElementById('list');
+      const empty = document.getElementById('empty');
+
+      list.innerHTML = '';
+
+      if (todos.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      todos.forEach(t => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>${t.task}</span>
+          <button class="delete-btn" onclick="deleteTodo(${t.id})">Delete</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    async function addTodo() {
+      const input = document.getElementById('task');
+      const task = input.value.trim();
+      if (!task) return;
+
+      await fetch(`${API}/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+
+      input.value = '';
+      fetchTodos();
+    }
+
+    async function deleteTodo(id) {
+      await fetch(`${API}/todos/${id}`, { method: 'DELETE' });
+      fetchTodos();
+    }
+
+    fetchTodos();
+  </script>
+</body>
+</html>
