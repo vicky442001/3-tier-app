@@ -16,7 +16,6 @@ spec:
       containers:
       - name: backend
         image: {{ .Values.backend.image }}
-        imagePullPolicy: Never
         ports:
           - containerPort: 3000
 
