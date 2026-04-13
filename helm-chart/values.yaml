@@ -1,11 +1,11 @@
 namespace: todo
 
 backend:
-  image: karthick1729/todo-backend:1.0
+  image: karthick1729/todo-backend:4f71585d29b0070a64dd84287fcc9319ce5e25e6
   replicas: 2
 
 frontend:
-  image: karthick1729/todo-frontend:1.0
+  image: karthick1729/todo-frontend:4f71585d29b0070a64dd84287fcc9319ce5e25e6
   replicas: 2
 
 postgres:
